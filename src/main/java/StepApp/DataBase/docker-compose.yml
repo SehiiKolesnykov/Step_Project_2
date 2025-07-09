@@ -1,0 +1,12 @@
+services:
+  postgres:
+    image: postgres:9.6
+    environment:
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'pg123456'
+    ports:
+      - '5432:5432'
+    container_name: pg_tinder
+    volumes:
+      - ../.data_pg:/var/lib/postgresql/data/
+
