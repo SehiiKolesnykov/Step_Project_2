@@ -8,29 +8,52 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 
 public class StaticContentServlet extends HttpServlet {
 
+    private static final Map<String, String> MIME_TYPES = new HashMap<>();
+
+    static {
+        MIME_TYPES.put("css", "text/css");
+        MIME_TYPES.put("js", "application/javascript");
+        MIME_TYPES.put("png", "image/png");
+        MIME_TYPES.put("jpg", "image/jpeg");
+        MIME_TYPES.put("jpeg", "image/jpeg");
+        MIME_TYPES.put("gif", "image/gif");
+        MIME_TYPES.put("map", "application/json"); // Для .map файлів, як bootstrap.min.css.map
+    }
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-        throws ServletException, IOException {
-        String path =request.getServletPath() + request.getPathInfo();
-        if (path != null && !path.isEmpty()) {
-            path = path.substring(1);
-        } else {
-            path ="index.html";
+            throws ServletException, IOException {
+        String pathInfo = request.getPathInfo();
+        if (pathInfo == null || pathInfo.isEmpty()) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
         }
 
-        System.out.println(path);
+        // Видаляємо початковий слеш, якщо він є
+        String path = pathInfo.substring(1);
+        System.out.println("Requested path: " + path);
+
+        // Отримуємо ресурс відносно src/main/resources
         URL resource = getClass().getClassLoader().getResource(path);
         if (resource == null) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
 
+        // Встановлюємо тип вмісту на основі розширення файлу
+        String mimeType = getMimeType(path);
+        if (mimeType != null) {
+            response.setContentType(mimeType);
+        }
+
+        // Копіюємо вміст ресурсу в відповідь
         try (InputStream is = resource.openStream();
              ServletOutputStream os = response.getOutputStream()) {
-
             byte[] buffer = new byte[1024];
             int bytesRead;
             while ((bytesRead = is.read(buffer)) > 0) {
@@ -38,5 +61,13 @@ public class StaticContentServlet extends HttpServlet {
             }
         }
     }
-}
 
+    private String getMimeType(String path) {
+        int lastDot = path.lastIndexOf('.');
+        if (lastDot > 0 && lastDot < path.length() - 1) {
+            String extension = path.substring(lastDot + 1).toLowerCase();
+            return MIME_TYPES.getOrDefault(extension, "application/octet-stream");
+        }
+        return null;
+    }
+}
