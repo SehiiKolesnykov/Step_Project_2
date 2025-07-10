@@ -36,6 +36,8 @@ public class WebServer {
 
         handler.addServlet(new ServletHolder(staticContent), "/css/*");
 
+        handler.addServlet(new ServletHolder(new RedirectServlet()), "/");
+
         handler.addServlet(new ServletHolder(new LoginServlet(templateEngine)), "/login");
 
         handler.addServlet(new ServletHolder(new RegisterServlet(templateEngine)), "/register");
