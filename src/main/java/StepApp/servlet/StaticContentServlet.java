@@ -34,14 +34,15 @@ public class StaticContentServlet extends HttpServlet {
             return;
         }
 
-        // Видаляємо початковий слеш, якщо він є
-        String path = pathInfo.substring(1);
+        // Видаляємо початковий слеш і додаємо префікс для коректного пошуку
+        String path = pathInfo.substring(1); // Наприклад, "css/style.css" -> "css/style.css"
         System.out.println("Requested path: " + path);
 
         // Отримуємо ресурс відносно src/main/resources
         URL resource = getClass().getClassLoader().getResource(path);
         if (resource == null) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            System.out.println("Resource not found: " + path);
             return;
         }
 
