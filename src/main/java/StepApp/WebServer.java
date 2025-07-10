@@ -35,7 +35,6 @@ public class WebServer {
         handler.setContextPath("/");
 
         handler.addServlet(new ServletHolder(staticContent), "/css/*");
-        handler.addServlet(new ServletHolder(staticContent), "/img/*");
 
         handler.addServlet(new ServletHolder(new LoginServlet(templateEngine)), "/login");
 

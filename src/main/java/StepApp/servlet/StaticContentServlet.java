@@ -34,8 +34,8 @@ public class StaticContentServlet extends HttpServlet {
             return;
         }
 
-        // Видаляємо початковий слеш і додаємо префікс для коректного пошуку
-        String path = pathInfo.substring(1); // Наприклад, "css/style.css" -> "css/style.css"
+        // Додаємо префікс "css/" до шляху
+        String path = "css" + pathInfo; // Наприклад, "css/style.css"
         System.out.println("Requested path: " + path);
 
         // Отримуємо ресурс відносно src/main/resources
