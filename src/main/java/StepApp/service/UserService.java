@@ -7,15 +7,14 @@ import StepApp.model.User;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class UserService {
 
     UserDao userDao;
-    private final List<String> rated;
 
     public UserService() {
         this.userDao = new UserDaoImpl();
-        rated = new ArrayList<>();
     }
 
     public boolean checkPassword(String email, String password) {
@@ -35,101 +34,6 @@ public class UserService {
        return userDao.getUserEmailFromCookie(request);
     }
 
-    public Map<String, Object> likePageData (HttpServletRequest request, HttpServletResponse response) {
-        Map<String, Object> data = new HashMap<>();
-        Optional<String> currentUserEmail = getUserEmailFromCookie(request);
-
-        Optional<String> endCookie = userDao.getLikedEnd(request);
-        if (endCookie.isPresent()) {
-            data.put("redirect", "/liked");
-            data.put("avatarUrl", "");
-            data.put("userName", "");
-            data.put("userSurname", "");
-            data.put("userEmail", "");
-            return data;
-        }
-
-        String action = request.getParameter("action");
-        String ratedUserEmail = request.getParameter("userEmail");
-
-        if ("like".equals(action) && ratedUserEmail != null) {
-            currentUserEmail.ifPresent(email -> {
-                userDao.addToLikedDb(email, ratedUserEmail);
-                addToRated(ratedUserEmail);
-            });
-        } else if ("dislike".equals(action) && ratedUserEmail != null) {
-            addToRated(ratedUserEmail);
-        }
-
-        Optional<User> nextUser = getNextUser(currentUserEmail.orElse(""), request);
-        if(nextUser.isPresent()){
-            data.put("avatarUrl", nextUser.get().getAvatarUrl());
-            data.put("userName", nextUser.get().getName());
-            data.put("userSurname", nextUser.get().getSurname());
-            data.put("userEmail", nextUser.get().getEmail());
-        } else {
-            userDao.addEndLikedToCookie(response);
-            rated.clear();
-            data.put("redirect", "/users?error=true&message=No more users to like.");
-            data.put("avatarUrl", "");
-            data.put("userName", "");
-            data.put("userSurname", "");
-            data.put("userEmail", "");
-        }
-        return data;
-    }
-
-    private void addToRated(String userEmail) {
-        if (userEmail != null && !rated.contains(userEmail)) {
-            rated.add(userEmail);
-        }
-    }
-
-    private Optional<User> getNextUser(String currentUser, HttpServletRequest request) {
-        List<User> users = getShuffledUsers();
-        if (users.isEmpty()) return Optional.empty();
-
-        List<String> likedUsers = !currentUser.isEmpty() ? userDao.getLikedUsersFromDb(currentUser) : new ArrayList<>();
-
-        List<User> availableUsers = users.stream()
-                .filter(user -> !user.getEmail().equals(currentUser))
-                .filter(user -> !rated.contains(user.getEmail()))
-                .filter(user -> !likedUsers.contains(user.getEmail()))
-                .toList();
-
-        if (availableUsers.isEmpty()) return Optional.empty();
-
-        User nextUser = availableUsers.getFirst();
-        request.setAttribute("currentUserEmail", nextUser.getEmail());
-        return Optional.of(nextUser);
-    }
-
-    public List<Map<String, Object>> getLickedUsersData(HttpServletRequest request) {
-        String currentUserEmail = getUserEmailFromCookie(request).orElse("");
-        List<String> likedUsers = userDao.getLikedUsersFromDb(currentUserEmail);
-        List<User> users = userDao.getUsers();
-        List<Map<String, Object>> likedUsersData = new ArrayList<>();
-
-        likedUsers.forEach(email -> {
-            Optional<User> user = users.stream()
-                    .filter(u -> u.getEmail().equals(email))
-                    .findFirst();
-            if (user.isPresent()) {
-                Map<String, Object> likedUser = new HashMap<>();
-                likedUser.put("id", user.get().getId());
-                likedUser.put("avatarUrl", user.get().getAvatarUrl());
-                likedUser.put("userName", user.get().getName());
-                likedUser.put("userSurname", user.get().getSurname());
-                likedUser.put("profession", user.get().getProfession());
-                likedUser.put("lastVisitToString", user.get().getLastVisitToString());
-                likedUser.put("daysSinceLastVisit", user.get().daysSinceLastVisit());
-                likedUser.put("email", user.get().getEmail());
-                likedUsersData.add(likedUser);
-            }
-        });
-         return likedUsersData;
-    }
-
     public Map<String, Object> getUserDataByEmail(String email) {
         Map<String, Object> userData = new HashMap<>();
         Optional<User> user = userDao.getUserByEmail(email);
@@ -144,10 +48,58 @@ public class UserService {
         return userData;
     }
 
+    public Optional<String> getUserEmailById(int id) {
+        return userDao.getUserEmailById(id);
+    }
+
+    public void setLastVisitToNow(HttpServletRequest request) {
+        userDao.updateUserLastLogin(request);
+    }
+
+    public List<User> getUsers() {
+        return userDao.getUsers();
+    }
+
+    public Optional<User> checkNewUserData(String name, String surname, String gender, String email, String password) {
+        String nameSurnamePattern = "^[a-zA-Z]{2,50}$";
+        String genderPattern = "^(male|female)$";
+        String emailPattern = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
+        String passwordPattern = "^(?=\\S+$)[a-zA-Z0-9]{5,20}$";
+
+        if ( name == null || name.isBlank() ||
+                surname == null || surname.isBlank() ||
+                gender == null || gender.isBlank() ||
+                email == null || email.isBlank() ||
+                password == null || password.isBlank()) {
+
+            return Optional.empty();
+        }
+
+        if (!Pattern.compile(nameSurnamePattern).matcher(surname).matches()) {
+            return Optional.empty();
+        }
+
+        if (!Pattern.compile(genderPattern).matcher(gender).matches()) {
+            return Optional.empty();
+        }
+
+        if (!Pattern.compile(emailPattern).matcher(email).matches()) {
+            return Optional.empty();
+        }
+
+        if (!Pattern.compile(passwordPattern).matcher(password).matches()) {
+            return Optional.empty();
+        }
+
+        String avatarUrl = userDao.getDefaultAvatar(gender);
+        String profession = userDao.getDefaultProfession();
+
+        return Optional.of(new User(name, surname, gender, avatarUrl, profession, System.currentTimeMillis(), email, password));
+    }
+
     public boolean startApp() {
         if (usersCount() >= 10) return false;
         userDao.createUserTable();
-        userDao.createLikedTable();
 
         long time = System.currentTimeMillis();
         Random random = new Random();
@@ -176,6 +128,23 @@ public class UserService {
         return true;
     }
 
+    private void createTestUser() {
+        long time = System.currentTimeMillis();
+
+        User testUser = new User(
+                "Name",
+                "Surname",
+                "male",
+                "https://media.istockphoto.com/id/1450340623/uk/%D1%84%D0%BE%D1%82%D0%BE/%D0%BF%D0%BE%D1%80%D1%82%D1%80%D0%B5%D1%82-%D1%83%D1%81%D0%BF%D1%96%D1%88%D0%BD%D0%BE%D0%B3%D0%BE-%D0%B7%D1%80%D1%96%D0%BB%D0%BE%D0%B3%D0%BE-%D0%B1%D0%BE%D1%81%D0%B0-%D1%81%D1%82%D0%B0%D1%80%D1%88%D0%BE%D0%B3%D0%BE-%D0%B1%D1%96%D0%B7%D0%BD%D0%B5%D1%81%D0%BC%D0%B5%D0%BD%D0%B0-%D0%B2-%D0%BE%D0%BA%D1%83%D0%BB%D1%8F%D1%80%D0%B0%D1%85-%D0%B0%D0%B7%D1%96%D0%B0%D1%82%D0%B0-%D1%89%D0%BE-%D0%B4%D0%B8%D0%B2%D0%B8%D1%82%D1%8C%D1%81%D1%8F-%D0%B2-%D0%BA%D0%B0%D0%BC%D0%B5%D1%80%D1%83-%D1%96.jpg?s=612x612&w=0&k=20&c=Lcz61N-HxBFuYRhQU1lGo7e8e54gdsTeEYsh1oFrJ2k=",
+                "Tester",
+                time,
+                "test@example.com",
+                "123456"
+        );
+
+        registerUser(testUser);
+    }
+
     private int usersCount() {
         return userDao.usersCount();
     }
@@ -198,7 +167,7 @@ public class UserService {
     }
 
     private void newUsers(String gender, String[] avatars, String[] names, String[] surnames, String[] professions,
-            long time, Random random, int amount) {
+                          long time, Random random, int amount) {
 
         for (int i = 0; i < amount; i++) {
             String name = names[random.nextInt(names.length)];
@@ -213,44 +182,10 @@ public class UserService {
                 avatar = avatars[random.nextInt(avatars.length)];
             }
             User user = new User(name, surname, gender, avatar, profession, time, email, password);
-            boolean success = registerUser(user);
-            if (success) {
-                System.out.println("User " + i + " " + name + surname + " registered");
-            }
+            registerUser(user);
         }
     }
 
-    private void createTestUser() {
-        long time = System.currentTimeMillis();
-
-        User testUser = new User(
-                "Name",
-                "Surname",
-                "male",
-                "https://media.istockphoto.com/id/1450340623/uk/%D1%84%D0%BE%D1%82%D0%BE/%D0%BF%D0%BE%D1%80%D1%82%D1%80%D0%B5%D1%82-%D1%83%D1%81%D0%BF%D1%96%D1%88%D0%BD%D0%BE%D0%B3%D0%BE-%D0%B7%D1%80%D1%96%D0%BB%D0%BE%D0%B3%D0%BE-%D0%B1%D0%BE%D1%81%D0%B0-%D1%81%D1%82%D0%B0%D1%80%D1%88%D0%BE%D0%B3%D0%BE-%D0%B1%D1%96%D0%B7%D0%BD%D0%B5%D1%81%D0%BC%D0%B5%D0%BD%D0%B0-%D0%B2-%D0%BE%D0%BA%D1%83%D0%BB%D1%8F%D1%80%D0%B0%D1%85-%D0%B0%D0%B7%D1%96%D0%B0%D1%82%D0%B0-%D1%89%D0%BE-%D0%B4%D0%B8%D0%B2%D0%B8%D1%82%D1%8C%D1%81%D1%8F-%D0%B2-%D0%BA%D0%B0%D0%BC%D0%B5%D1%80%D1%83-%D1%96.jpg?s=612x612&w=0&k=20&c=Lcz61N-HxBFuYRhQU1lGo7e8e54gdsTeEYsh1oFrJ2k=",
-                "Tester",
-                time,
-                "test@example.com",
-                "123456"
-        );
-
-        boolean isCreateTestUser = registerUser(testUser);
-        if (isCreateTestUser) {
-            System.out.println("Test user created");
-        }
-    }
-
-    private List<User> getShuffledUsers() {
-        List<User> users = userDao.getUsers();
-        Collections.shuffle(users);
-        return users;
-    }
-
-    public Optional<String> getUserEmailById(int id) {
-        return userDao.getUserEmailById(id);
-    }
-
-    public void removeEndLikedFromCookie (HttpServletResponse response) {
-        userDao.removeEndLikedFromCookie(response);
-    }
 }
+
+

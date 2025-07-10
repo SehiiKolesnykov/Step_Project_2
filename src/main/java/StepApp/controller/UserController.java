@@ -37,14 +37,6 @@ public class UserController {
         return userService.getUserEmailFromCookie(request);
     }
 
-    public Map<String, Object> likePageData (HttpServletRequest request, HttpServletResponse response) {
-        return userService.likePageData(request, response);
-    }
-
-    public List<Map<String, Object>> getLikedUsersData (HttpServletRequest request) {
-        return userService.getLickedUsersData(request);
-    }
-
     public Map<String, Object> getUserDataByEmail(String email) {
         return userService.getUserDataByEmail(email);
     }
@@ -53,8 +45,16 @@ public class UserController {
         return userService.getUserEmailById(id);
     }
 
-    public void removeEndLikedFromCookie(HttpServletResponse response) {
-        userService.removeEndLikedFromCookie(response);
+    public List<User> getUsers() {
+        return userService.getUsers();
+    }
+
+    public Optional<User> checkNewUserData(String name, String surname, String gender, String email, String password) {
+        return userService.checkNewUserData(name, surname, gender, email, password);
+    }
+
+    public void setLastVisitToNow(HttpServletRequest request) {
+        userService.setLastVisitToNow(request);
     }
 
 }

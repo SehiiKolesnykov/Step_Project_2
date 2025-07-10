@@ -1,5 +1,6 @@
 package StepApp.servlet;
 
+import StepApp.controller.LikeController;
 import StepApp.controller.UserController;
 import StepApp.util.TemplateEngine;
 
@@ -15,11 +16,11 @@ import java.util.Map;
 public class LikedPageServlet extends HttpServlet {
 
     private final TemplateEngine templateEngine;
-    private final UserController userController;
+    private final LikeController likeController;
 
     public LikedPageServlet(TemplateEngine templateEngine) {
         this.templateEngine = templateEngine;
-        this.userController = new UserController();
+        this.likeController = new LikeController();
     }
 
     @Override
@@ -28,7 +29,7 @@ public class LikedPageServlet extends HttpServlet {
 
         Map<String, Object> data = new HashMap<>();
 
-        List<Map<String, Object>> likedUsers = userController.getLikedUsersData(request);
+        List<Map<String, Object>> likedUsers = likeController.getLikedUsersData(request);
         data.put("likedUsers", likedUsers);
 
         templateEngine.render("people-list.ftl", data, response);

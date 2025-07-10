@@ -2,7 +2,6 @@ package StepApp.dao;
 
 import StepApp.model.User;
 
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.*;
@@ -69,9 +68,6 @@ public class UserDaoImpl implements UserDao {
             stmt.setString(7, user.getPassword());
             stmt.setLong(8, user.getLastVisit());
         });
-        if (success) {
-            System.out.println("User added successfully");
-        }
         return success;
     }
 
@@ -92,20 +88,6 @@ public class UserDaoImpl implements UserDao {
                                 """;
         appDao.createTable(createTabUsersSql, "users");
     }
-
-    @Override
-    public void createLikedTable() {
-        String creteTabLikedSql =
-                """
-                                CREATE TABLE IF NOT EXISTS liked (
-                                userEmail        varchar(255),
-                                liked           varchar(255)
-                                                                 )
-                        """;
-
-        appDao.createTable(creteTabLikedSql, "liked");
-    }
-
 
     @Override
     public int usersCount() {
@@ -166,50 +148,6 @@ public class UserDaoImpl implements UserDao {
     }
 
     @Override
-    public void addToLikedDb(String userEmail, String likedUser) {
-        String insertQuery =
-                """
-                        INSERT INTO liked (useremail, liked)
-                        VALUES (?, ?)
-                        """;
-
-        boolean success = appDao.executeUpdate(insertQuery, stmt -> {
-            stmt.setString(1, userEmail);
-            stmt.setString(2, likedUser);
-        });
-        if (success) {
-            System.out.println("Liked user added successfully");
-        }
-    }
-
-    @Override
-    public List<String> getLikedUsersFromDb(String userEmail) {
-        String getQuery = "SELECT liked FROM liked WHERE useremail = ?";
-        return appDao.executeQuery(getQuery,
-                stmt -> stmt.setString(1, userEmail),
-                rs -> {
-                    List<String> lickedUsers = new ArrayList<>();
-                    while (rs.next()) {
-                        lickedUsers.add(rs.getString("liked"));
-                    }
-                    return lickedUsers;
-                });
-    }
-
-    @Override
-    public void addEndLikedToCookie(HttpServletResponse response) {
-        Cookie endCookie = new Cookie("END", "true");
-        endCookie.setPath("/");
-        endCookie.setMaxAge(3600);
-        response.addCookie(endCookie);
-    }
-
-    @Override
-    public Optional<String> getLikedEnd(HttpServletRequest request) {
-        return appDao.getCookieValue(request, "END", value -> value);
-    }
-
-    @Override
     public Optional<User> getUserByEmail(String email) {
         String getQuery =
                         """
@@ -241,16 +179,27 @@ public class UserDaoImpl implements UserDao {
     }
 
     @Override
-    public void removeEndLikedFromCookie(HttpServletResponse response) {
-        appDao.removeCookie("END", response);
+    public String getDefaultAvatar (String gender) {
+        return switch (gender) {
+            case "male" -> maleAvatars[new Random().nextInt(maleAvatars.length)];
+            case "female" -> femaleAvatars[new Random().nextInt(femaleAvatars.length)];
+            default -> null;
+        };
     }
 
-//    // Узагальнений метод для логування результатів
-//    private void logResult(boolean success, String successMessage, String errorMessage) {
-//        if (success) {
-//            System.out.println(successMessage);
-//        } else {
-//            System.err.println(errorMessage);
-//        }
-//    }
+    @Override
+    public String getDefaultProfession() {
+        return  professions[new Random().nextInt(professions.length)];
+    }
+
+    @Override
+    public void updateUserLastLogin(HttpServletRequest request) {
+        String updateQuery = "UPDATE users SET lastvisit = ? WHERE email = ?";
+        String userEmail = getUserEmailFromCookie(request).orElse(null);
+        appDao.executeUpdate(updateQuery, stmt -> {
+            stmt.setLong(1, System.currentTimeMillis());
+            stmt.setString(2, userEmail);
+        });
+    }
+
 }

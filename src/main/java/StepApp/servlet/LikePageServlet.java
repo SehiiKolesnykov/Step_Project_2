@@ -1,6 +1,6 @@
 package StepApp.servlet;
 
-import StepApp.controller.UserController;
+import StepApp.controller.LikeController;
 import StepApp.util.TemplateEngine;
 
 import javax.servlet.ServletException;
@@ -13,18 +13,18 @@ import java.util.*;
 public class LikePageServlet extends HttpServlet {
 
     private final TemplateEngine templateEngine;
-    private final UserController userController;
+    private final LikeController likeController;
 
     public LikePageServlet(TemplateEngine templateEngine) {
         this.templateEngine = templateEngine;
-        this.userController = new UserController();
+        this.likeController = new LikeController();
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        Map<String, Object> data = userController.likePageData(request, response);
+        Map<String, Object> data = likeController.likePageData(request, response);
 
         System.out.println(data);
 

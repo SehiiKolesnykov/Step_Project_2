@@ -5,11 +5,14 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DbConnection {
-    static String url = "jdbc:postgresql://localhost:5432/tinder";
-    static String username = "postgres";
-    static String password = "pg123456";
-
     public static Connection conn() throws SQLException {
-        return DriverManager.getConnection(url, username, password);
+       try {
+           String url = System.getenv("DATABASE_URL") != null ? System.getenv("DATABASE_URL") : "jdbc:postgresql://localhost:5432/step_app";
+           String username = System.getenv("DB_USERNAME") != null ? System.getenv("DATABASE_USER") : "postgres";
+           String password = System.getenv("DB_PASSWORD") != null ? System.getenv("DATABASE_PASSWORD") : "<PASSWORD>";
+           return DriverManager.getConnection(url, username, password);
+       } catch (SQLException e) {
+           throw new SQLException("Error connecting to the database", e);
+       }
     }
 }

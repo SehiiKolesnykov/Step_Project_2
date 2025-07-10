@@ -17,7 +17,8 @@ public class WebServer {
 
     public static void main(String[] args) throws Exception {
 
-        Server server = new Server(8080);
+        String port = System.getenv("PORT") != null ? System.getenv("PORT") : "8080";
+        Server server = new Server(Integer.parseInt(port));
 
         StartApp startApp = new StartApp();
 
@@ -38,6 +39,8 @@ public class WebServer {
 
         handler.addServlet(new ServletHolder(new LoginServlet(templateEngine)), "/login");
 
+        handler.addServlet(new ServletHolder(new RegisterServlet(templateEngine)), "/register");
+
         handler.addServlet(new ServletHolder(new LikePageServlet(templateEngine)), "/users");
         handler.addFilter(authorisedFilter, "/users", options);
 
@@ -46,8 +49,6 @@ public class WebServer {
 
         handler.addServlet(new ServletHolder(new ChatServlet(templateEngine)), "/messages/*");
         handler.addFilter(authorisedFilter, "/messages/*", options);
-
-        handler.addServlet(new ServletHolder(new TemplateServlet(templateEngine, "register.ftl")), "/register");
 
 
         server.setHandler(handler);

@@ -50,11 +50,6 @@ public class TokenDaoImpl implements TokenDao {
             stmt.setString(1, email);
             stmt.setString(2, token.toString());
         });
-        if (success) {
-            System.out.println("Token added successfully");
-        } else {
-            System.err.println("Token not added");
-        }
     }
 
     @Override
@@ -67,11 +62,6 @@ public class TokenDaoImpl implements TokenDao {
         String deleteQuery = "DELETE FROM tokens WHERE token = ?";
         boolean success = appDao.executeUpdate(deleteQuery,
                 stmt -> stmt.setString(1, token.toString()));
-        if (success) {
-            System.out.println("Token deleted successfully");
-        } else {
-            System.err.println("Token not deleted");
-        }
     }
 
     @Override

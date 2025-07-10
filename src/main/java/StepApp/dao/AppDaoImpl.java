@@ -24,7 +24,7 @@ public class AppDaoImpl implements AppDao{
                 return handler.handle(rs);
             }
         } catch (SQLException e) {
-            System.err.println("Помилка запиту: " + e.getMessage());
+            System.err.println("Error executeQuery " + e.getMessage());
             return null;
         }
     }
@@ -38,7 +38,7 @@ public class AppDaoImpl implements AppDao{
                 return rowsAffected > 0;
             }
         } catch (SQLException e) {
-            System.err.println("Помилка виконання: " + e.getMessage());
+            System.err.println("Error executeUpdate:  " + e.getMessage());
             return false;
         }
     }
@@ -48,10 +48,9 @@ public class AppDaoImpl implements AppDao{
         try (Connection conn = getConnection()){
             try (Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate(createTableQuery);
-                System.out.println("Таблицю " + tableName + " успішно створено");
             }
         } catch (SQLException e) {
-            System.err.println("Помилка створення таблиці " + tableName + ": " + e.getMessage());
+            System.err.println("Error creating table" + tableName + ": " + e.getMessage());
         }
     }
 
