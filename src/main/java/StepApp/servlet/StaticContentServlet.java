@@ -1,12 +1,10 @@
 package StepApp.servlet;
 
 import javax.servlet.ServletException;
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,7 +20,7 @@ public class StaticContentServlet extends HttpServlet {
         MIME_TYPES.put("jpg", "image/jpeg");
         MIME_TYPES.put("jpeg", "image/jpeg");
         MIME_TYPES.put("gif", "image/gif");
-        MIME_TYPES.put("map", "application/json"); // Для .map файлів, як bootstrap.min.css.map
+        MIME_TYPES.put("map", "application/json");
     }
 
     @Override
@@ -34,32 +32,27 @@ public class StaticContentServlet extends HttpServlet {
             return;
         }
 
-        // Додаємо префікс "css/" до шляху
-        String path = "css" + pathInfo; // Наприклад, "css/style.css"
-        System.out.println("Requested path: " + path);
+        String path = "css" + pathInfo;
 
-        // Отримуємо ресурс відносно src/main/resources
         URL resource = getClass().getClassLoader().getResource(path);
         if (resource == null) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             System.out.println("Resource not found: " + path);
-            return;
         }
 
-        // Встановлюємо тип вмісту на основі розширення файлу
-        String mimeType = getMimeType(path);
-        if (mimeType != null) {
-            response.setContentType(mimeType);
+        String mimePipe = getMimeType(path);
+        if (mimePipe != null) {
+            response.setContentType(mimePipe);
         }
 
-        // Копіюємо вміст ресурсу в відповідь
-        try (InputStream is = resource.openStream();
-             ServletOutputStream os = response.getOutputStream()) {
+        try (java.io.InputStream is = resource.openStream()) {
             byte[] buffer = new byte[1024];
             int bytesRead;
             while ((bytesRead = is.read(buffer)) > 0) {
-                os.write(buffer, 0, bytesRead);
+                response.getOutputStream().write(buffer, 0, bytesRead);
             }
+        } catch (IOException e) {
+            System.out.println("Error reading resource: " + path);
         }
     }
 
